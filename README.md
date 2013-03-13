@@ -10,8 +10,8 @@ INSTALL:
 --------
     download zip
     extract zip
-    copy win.go c:\Go\src\pkg\ohisama
-    cd src/main.go
+    copy win.go c:\Go\src\pkg\ohisama\win
+    cd src
     go run main.go
 
 LICENSE:
