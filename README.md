@@ -8,9 +8,11 @@ WHATS:
 
 INSTALL:
 --------
-
-    
-    go run test.go 
+    download zip
+    extract zip
+    copy win.go c:\Go\src\pkg\ohisama
+    cd src/main.go
+    go run main.go
 
 LICENSE:
 --------
