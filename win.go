@@ -1,8 +1,8 @@
+// ver 1.1 ohisama
 package win
 import (
 	"syscall"
 	"unsafe"
-	"fmt"
 )
 const (
 	WS_OVERLAPPED = 0x00000000
@@ -43,14 +43,6 @@ const (
 	CS_HREDRAW = 0x0002
 	CW_USEDEFAULT = -2147483648
 	SW_SHOWDEFAULT = 10
-	BS_DEFPUSHBUTTON = 1
-	PS_solid = 0
-	PS_DASH = 1
-	PS_DOT = 2
-	PS_DASHDOT = 3
-	PS_DASHDOTDOT = 4
-	PS_NULL = 5
-	PS_INSIDEFRAME = 6
 )
 type WNDCLASSEX struct {
 	cbSize uint32
@@ -90,119 +82,115 @@ type PAINTSTRUCT struct {
 	rcPaint RECT
 	fRestore uint32
 	fIncUpdate uint32
-	rgbReserved byte
+	rgbReserved [32]byte
 }
 var (
-	kernel32, _ = syscall.LoadLibrary("kernel32.dll")
-	user32, _ = syscall.LoadLibrary("user32.dll")
-	gdi32, _ = syscall.LoadLibrary("gdi32.dll")
-	pGetModuleHandleW, _ = syscall.GetProcAddress(kernel32, "GetModuleHandleW")
-	pLoadIconW, _ = syscall.GetProcAddress(user32, "LoadIconW")
-	pLoadCursorW, _ = syscall.GetProcAddress(user32, "LoadCursorW")
-	pRegisterClassExW, _ = syscall.GetProcAddress(user32, "RegisterClassExW")
-	pCreateWindowExW, _ = syscall.GetProcAddress(user32, "CreateWindowExW")
-	pDefWindowProcW, _ = syscall.GetProcAddress(user32, "DefWindowProcW")
-	pDestroyWindow, _ = syscall.GetProcAddress(user32, "DestroyWindow")
-	pPostQuitMessage, _ = syscall.GetProcAddress(user32, "PostQuitMessage")
-	pShowWindow, _ = syscall.GetProcAddress(user32, "ShowWindow")
-	pUpdateWindow, _ = syscall.GetProcAddress(user32, "UpdateWindow")
-	pGetMessageW, _ = syscall.GetProcAddress(user32, "GetMessageW")
-	pTranslateMessage, _ = syscall.GetProcAddress(user32, "TranslateMessage")
-	pDispatchMessageW, _ = syscall.GetProcAddress(user32, "DispatchMessageW")
-	pSendMessageW, _ = syscall.GetProcAddress(user32, "SendMessageW")
-	pPostMessageW, _ = syscall.GetProcAddress(user32, "PostMessageW")
-	pBeginPaint, _ = syscall.GetProcAddress(user32, "BeginPaint")
-	pEndPaint, _ = syscall.GetProcAddress(user32, "EndPaint")
-	pTextOutW, _ = syscall.GetProcAddress(gdi32, "TextOutW")
-	pSetPixelV, _ = syscall.GetProcAddress(gdi32, "SetPixelV")
-	pEllipse, _ = syscall.GetProcAddress(gdi32, "Ellipse")
+	kernel32 = syscall.NewLazyDLL("kernel32.dll")
+	user32 = syscall.NewLazyDLL("user32.dll")
+	gdi32 = syscall.NewLazyDLL("gdi32.dll")
+	pGetModuleHandleW = kernel32.NewProc("GetModuleHandleW")
+	pLoadIconW = user32.NewProc("LoadIconW")
+	pLoadCursorW = user32.NewProc("LoadCursorW")
+	pRegisterClassExW = user32.NewProc("RegisterClassExW")
+	pCreateWindowExW = user32.NewProc("CreateWindowExW")
+	pDefWindowProcW = user32.NewProc("DefWindowProcW")
+	pDestroyWindow = user32.NewProc("DestroyWindow")
+	pPostQuitMessage = user32.NewProc("PostQuitMessage")
+	pShowWindow = user32.NewProc("ShowWindow")
+	pUpdateWindow = user32.NewProc("UpdateWindow")
+	pGetMessageW = user32.NewProc("GetMessageW")
+	pTranslateMessage = user32.NewProc("TranslateMessage")
+	pDispatchMessageW = user32.NewProc("DispatchMessageW")
+	pSendMessageW = user32.NewProc("SendMessageW")
+	pPostMessageW = user32.NewProc("PostMessageW")
+	pBeginPaint = user32.NewProc("BeginPaint")
+	pEndPaint = user32.NewProc("EndPaint")
+	pTextOutW = gdi32.NewProc("TextOutW")
+	pSetPixelV = gdi32.NewProc("SetPixelV")
+	pEllipse = gdi32.NewProc("Ellipse")
+	IDC_ARROW = MakeIntResource(32512)
+	IDI_APPLICATION = MakeIntResource(32512)
 )
-func GetModuleHandle(lpModuleName * uint16) (syscall.Handle) {
-	ret, _, _ := syscall.Syscall(uintptr(pGetModuleHandleW), 1, uintptr(unsafe.Pointer(lpModuleName)), 0, 0)
+func GetModuleHandle(name * uint16) syscall.Handle {
+	ret, _, _ := pGetModuleHandleW.Call(uintptr(unsafe.Pointer(name)))
 	return syscall.Handle(ret)
 }
-func LoadIcon(instance syscall.Handle, iconname * uint16) (syscall.Handle) {
-	ret, _, _ := syscall.Syscall(uintptr(pLoadIconW), 2, uintptr(instance), uintptr(unsafe.Pointer(iconname)), 0)
+func LoadIcon(instance syscall.Handle, iconname * uint16) syscall.Handle {
+	ret, _, _ := pLoadIconW.Call(uintptr(instance), uintptr(unsafe.Pointer(iconname)))
 	return syscall.Handle(ret)
 }
-func LoadCursor(instance syscall.Handle, cursorname * uint16) (syscall.Handle) {
-	ret, _, _ := syscall.Syscall(uintptr(pLoadCursorW), 2, uintptr(instance), uintptr(unsafe.Pointer(cursorname)), 0)
+func LoadCursor(instance syscall.Handle, cursorname * uint16) syscall.Handle {
+	ret, _, _ := pLoadCursorW.Call(uintptr(instance), uintptr(unsafe.Pointer(cursorname)))
 	return syscall.Handle(ret)
 }
-func RegisterClassEx(lpwcx * WNDCLASSEX) (uint16) {
-	ret, _, _ := syscall.Syscall(uintptr(pRegisterClassExW), 1, uintptr(unsafe.Pointer(lpwcx)), 0, 0)
+func RegisterClassEx(lpwcx * WNDCLASSEX) uint16 {
+	ret, _, _ := pRegisterClassExW.Call(uintptr(unsafe.Pointer(lpwcx)))
 	return uint16(ret)
 }
-func CreateWindowEx(dwExStyle uint32, lpClassName * uint16, lpWindowName * uint16, dwStyle uint32, x int32, y int32, nWidth int32, nHeight int32, hWndParent syscall.Handle, hMenu syscall.Handle, hInstance syscall.Handle, lpParam uintptr) (syscall.Handle) {
-	ret, _, _ := syscall.Syscall12(uintptr(pCreateWindowExW), 12, uintptr(dwExStyle), uintptr(unsafe.Pointer(lpClassName)), uintptr(unsafe.Pointer(lpWindowName)), uintptr(dwStyle), uintptr(x), uintptr(y), uintptr(nWidth), uintptr(nHeight), uintptr(hWndParent), uintptr(hMenu), uintptr(hInstance), uintptr(lpParam))
+func CreateWindowEx(dwExStyle uint32, lpClassName * uint16, lpWindowName *uint16, dwStyle uint32, x int32, y int32, nWidth int32, nHeight int32, hWndParent syscall.Handle, hMenu syscall.Handle, hInstance syscall.Handle, lpParam uintptr) syscall.Handle {
+	ret, _, _ := pCreateWindowExW.Call(uintptr(dwExStyle), uintptr(unsafe.Pointer(lpClassName)), uintptr(unsafe.Pointer(lpWindowName)), uintptr(dwStyle), uintptr(x), uintptr(y), uintptr(nWidth), uintptr(nHeight), uintptr(hWndParent), uintptr(hMenu), uintptr(hInstance), uintptr(lpParam))
 	return syscall.Handle(ret)
 }
-func DefWindowProc(hWnd syscall.Handle, Msg uint32, wParam uintptr, lParam uintptr) (uintptr) {
-	ret, _, _ := syscall.Syscall6(uintptr(pDefWindowProcW), 4, uintptr(hWnd), uintptr(Msg), uintptr(wParam), uintptr(lParam), 0, 0)
+func DefWindowProc(hWnd syscall.Handle, Msg uint32, wParam uintptr, lParam uintptr) uintptr {
+	ret, _, _ := pDefWindowProcW.Call(uintptr(hWnd), uintptr(Msg), uintptr(wParam), uintptr(lParam))
 	return uintptr(ret)
 }
-func PostQuitMessage(nExitCode int32) {
-	syscall.Syscall(uintptr(pPostQuitMessage), 1, uintptr(nExitCode), 0, 0)
-	return
-}
-func ShowWindow(hWnd syscall.Handle, nCmdShow int32) (bool) {
-	ret, _, _ := syscall.Syscall(uintptr(pShowWindow), 2, uintptr(hWnd), uintptr(nCmdShow), 0)
-	return bool(ret != 0)
-}
 func DestroyWindow(hWnd syscall.Handle) {
-	syscall.Syscall(uintptr(pDestroyWindow), 1, uintptr(hWnd), 0, 0)
-	return
+	pDestroyWindow.Call(uintptr(hWnd))
+}
+func PostQuitMessage(nExitCode int32) {
+	pPostQuitMessage.Call(uintptr(nExitCode))
+}
+func ShowWindow(hWnd syscall.Handle, nCmdShow int32) bool {
+	ret, _, _ := pShowWindow.Call(uintptr(hWnd), uintptr(nCmdShow))
+	return ret != 0
 }
 func UpdateWindow(hWnd syscall.Handle) {
-	syscall.Syscall(uintptr(pUpdateWindow), 1, uintptr(hWnd), 0, 0)
-	return
+	pUpdateWindow.Call(uintptr(hWnd))
 }
-func GetMessage(lpMsg * MSG, hWnd syscall.Handle, wMsgFilterMin uint32, wMsgFilterMax uint32) (int32) {
-	ret, _, _ := syscall.Syscall6(uintptr(pGetMessageW), 4, uintptr(unsafe.Pointer(lpMsg)), uintptr(hWnd), uintptr(wMsgFilterMin), uintptr(wMsgFilterMax), 0, 0)
+func GetMessage(lpMsg * MSG, hWnd syscall.Handle, wMsgFilterMin uint32, wMsgFilterMax uint32) int32 {
+	ret, _, _ := pGetMessageW.Call(uintptr(unsafe.Pointer(lpMsg)), uintptr(hWnd), uintptr(wMsgFilterMin), uintptr(wMsgFilterMax))
 	return int32(ret)
 }
-func TranslateMessage(lpMsg * MSG) (bool) {
-	r, _, _ := syscall.Syscall(uintptr(pTranslateMessage), 1, uintptr(unsafe.Pointer(lpMsg)), 0, 0)
-	return bool(r != 0)
+func TranslateMessage(lpMsg * MSG) bool {
+	r, _, _ := pTranslateMessage.Call(uintptr(unsafe.Pointer(lpMsg)))
+	return r != 0
 }
-func DispatchMessage(lpMsg * MSG) (int32) {
-	ret, _, _ := syscall.Syscall(uintptr(pDispatchMessageW), 1, uintptr(unsafe.Pointer(lpMsg)), 0, 0)
+func DispatchMessage(lpMsg * MSG) int32 {
+	ret, _, _ := pDispatchMessageW.Call(uintptr(unsafe.Pointer(lpMsg)))
 	return int32(ret)
 }
-func SendMessage(hWnd syscall.Handle, Msg uint32, wParam uintptr, lParam uintptr) (uintptr) {
-	ret, _, _ := syscall.Syscall6(uintptr(pSendMessageW), 4, uintptr(hWnd), uintptr(Msg), uintptr(wParam), uintptr(lParam), 0, 0)
+func SendMessage(hWnd syscall.Handle, Msg uint32, wParam uintptr, lParam uintptr) uintptr {
+	ret, _, _ := pSendMessageW.Call(uintptr(hWnd), uintptr(Msg), uintptr(wParam), uintptr(lParam))
 	return uintptr(ret)
 }
 func PostMessage(hWnd syscall.Handle, Msg uint32, wParam uintptr, lParam uintptr) {
-	syscall.Syscall6(uintptr(pPostMessageW), 4, uintptr(hWnd), uintptr(Msg), uintptr(wParam), uintptr(lParam), 0, 0)
-	return
+	pPostMessageW.Call(uintptr(hWnd), uintptr(Msg), uintptr(wParam), uintptr(lParam))
 }
-func BeginPaint(hDC syscall.Handle, lpPaint * PAINTSTRUCT) (syscall.Handle) {
-	ret, _, _ := syscall.Syscall(uintptr(pBeginPaint), 2, uintptr(hDC), uintptr(unsafe.Pointer(lpPaint)), 0)
+func BeginPaint(hDC syscall.Handle, lpPaint * PAINTSTRUCT) syscall.Handle {
+	ret, _, _ := pBeginPaint.Call(uintptr(hDC), uintptr(unsafe.Pointer(lpPaint)))
 	return syscall.Handle(ret)
 }
-func EndPaint(hDC syscall.Handle, lpPaint * PAINTSTRUCT) (syscall.Handle) {
-	ret, _, _ := syscall.Syscall(uintptr(pEndPaint), 2, uintptr(hDC), uintptr(unsafe.Pointer(lpPaint)), 0)
+func EndPaint(hDC syscall.Handle, lpPaint * PAINTSTRUCT) syscall.Handle {
+	ret, _, _ := pEndPaint.Call(uintptr(hDC), uintptr(unsafe.Pointer(lpPaint)))
 	return syscall.Handle(ret)
 }
-func TextOut(hDC syscall.Handle, x int32, y int32, text string, cbString int32) (bool) {
-	ret, _, _ := syscall.Syscall6(uintptr(pTextOutW), 5, uintptr(hDC), uintptr(x), uintptr(y), uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(text))), uintptr(cbString), 0)
-	return bool(ret != 0)
+func TextOut(hDC syscall.Handle, x int32, y int32, text string, cbString int32) bool {
+	ret, _, _ := pTextOutW.Call(uintptr(hDC), uintptr(x), uintptr(y), uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(text))), uintptr(cbString))
+	return ret != 0
 }
 func SetPixelV(hDC syscall.Handle, x int32, y int32, cbString int32) (int32) {
-	ret, _, _ := syscall.Syscall6(uintptr(pSetPixelV), 4, uintptr(hDC), uintptr(x), uintptr(y), uintptr(cbString), 0, 0)
+	ret, _, _ := pSetPixelV.Call(uintptr(hDC), uintptr(x), uintptr(y), uintptr(cbString))
 	return int32(ret)
 }
 func Ellipse(hDC syscall.Handle, x1 int32, y1 int32, x2 int32, y2 int32) (int32) {
-	ret, _, _ := syscall.Syscall6(uintptr(pEllipse), 5, uintptr(hDC), uintptr(x1), uintptr(y1), uintptr(x2), uintptr(y2), 0)
+	ret, _, _ := pEllipse.Call(uintptr(hDC), uintptr(x1), uintptr(y1), uintptr(x2), uintptr(y2))
 	return int32(ret)
 }
-func MakeIntResource(id uint16) (* uint16) {
+func MakeIntResource(id uint16) * uint16 {
 	return (* uint16) (unsafe.Pointer(uintptr(id)))
 }
 func WinMain(wproc uintptr) {
-	var IDC_ARROW = MakeIntResource(32512)
-	var IDI_APPLICATION = MakeIntResource(32512)
 	hInstance := GetModuleHandle(nil)
 	lpszClassName := syscall.StringToUTF16Ptr("ohisama/win")
 	lpszWindowName := syscall.StringToUTF16Ptr("ohisama/win")
@@ -220,7 +208,7 @@ func WinMain(wproc uintptr) {
 	wcex.lpszClassName = lpszClassName
 	wcex.hIconSm = LoadIcon(hInstance, IDI_APPLICATION)
 	RegisterClassEx(&wcex)
-	hWnd := CreateWindowEx(0, lpszClassName, lpszWindowName, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 600, 600, 0, 0, hInstance, 0)
+	hWnd := CreateWindowEx(0, lpszClassName, lpszWindowName, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 480, 0, 0, hInstance, 0)
 	ShowWindow(hWnd, SW_SHOWDEFAULT)
 	UpdateWindow(hWnd)
 	var msg MSG
@@ -231,5 +219,4 @@ func WinMain(wproc uintptr) {
 		TranslateMessage(&msg)
 		DispatchMessage(&msg)
 	}
-	return
 }
